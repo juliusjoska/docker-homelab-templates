@@ -1,0 +1,18 @@
+# Backup Stack: Restic + rclone
+# Automaticke inkrementalni zalohy na S3, Storage Box, nebo jiny remote
+
+services:
+  backup:
+    image: restic/restic:latest
+    container_name: backup
+    environment:
+      - RESTIC_REPOSITORY=${RESTIC_REPOSITORY:?Nastav RESTIC_REPOSITORY}
+      - RESTIC_PASSWORD=${RESTIC_PASSWORD:?Nastav RESTIC_PASSWORD}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+    volumes:
+      - ${BACKUP_SOURCE:-/opt}:/data:ro
+      - ./backup.sh:/backup.sh:ro
+    entrypoint: ["/bin/sh", "-c"]
+    command: ["while true; do sh /backup.sh; sleep ${BACKUP_INTERVAL:-86400}; done"]
+    restart: unless-stopped

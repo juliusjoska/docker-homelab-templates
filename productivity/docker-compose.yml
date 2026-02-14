@@ -1,0 +1,95 @@
+# Productivity Stack: Nextcloud + Paperless-ngx + Vaultwarden + Uptime Kuma
+# Self-hosted cloud, sprava dokumentu, hesla a monitoring
+
+services:
+  nextcloud:
+    image: nextcloud:latest
+    container_name: nextcloud
+    ports:
+      - "${NEXTCLOUD_PORT:-8080}:80"
+    environment:
+      - MYSQL_HOST=nextcloud-db
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=${MYSQL_USER:-nextcloud}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:?Nastav MYSQL_PASSWORD}
+      - NEXTCLOUD_ADMIN_USER=${NC_ADMIN_USER:-admin}
+      - NEXTCLOUD_ADMIN_PASSWORD=${NC_ADMIN_PASSWORD:?Nastav NC_ADMIN_PASSWORD}
+      - NEXTCLOUD_TRUSTED_DOMAINS=${NC_TRUSTED_DOMAINS:-localhost}
+    volumes:
+      - nextcloud-data:/var/www/html
+    restart: unless-stopped
+    depends_on:
+      - nextcloud-db
+      - nextcloud-redis
+
+  nextcloud-db:
+    image: mariadb:11
+    container_name: nextcloud-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:?Nastav MYSQL_ROOT_PASSWORD}
+      - MYSQL_DATABASE=nextcloud
+      - MYSQL_USER=${MYSQL_USER:-nextcloud}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:?Nastav MYSQL_PASSWORD}
+    volumes:
+      - nextcloud-db-data:/var/lib/mysql
+    restart: unless-stopped
+
+  nextcloud-redis:
+    image: redis:7-alpine
+    container_name: nextcloud-redis
+    restart: unless-stopped
+
+  paperless:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    container_name: paperless
+    ports:
+      - "${PAPERLESS_PORT:-8000}:8000"
+    environment:
+      - PAPERLESS_SECRET_KEY=${PAPERLESS_SECRET:?Nastav PAPERLESS_SECRET}
+      - PAPERLESS_ADMIN_USER=${PAPERLESS_ADMIN_USER:-admin}
+      - PAPERLESS_ADMIN_PASSWORD=${PAPERLESS_ADMIN_PASSWORD:?Nastav PAPERLESS_ADMIN_PASSWORD}
+      - PAPERLESS_OCR_LANGUAGE=ces+eng
+      - PAPERLESS_TIME_ZONE=${TZ:-Europe/Prague}
+      - PAPERLESS_REDIS=redis://paperless-redis:6379
+    volumes:
+      - paperless-data:/usr/src/paperless/data
+      - paperless-media:/usr/src/paperless/media
+      - ${CONSUME_PATH:-./consume}:/usr/src/paperless/consume
+    restart: unless-stopped
+    depends_on:
+      - paperless-redis
+
+  paperless-redis:
+    image: redis:7-alpine
+    container_name: paperless-redis
+    restart: unless-stopped
+
+  vaultwarden:
+    image: vaultwarden/server:latest
+    container_name: vaultwarden
+    ports:
+      - "${VAULTWARDEN_PORT:-8222}:80"
+    environment:
+      - ADMIN_TOKEN=${VAULTWARDEN_ADMIN_TOKEN:?Nastav VAULTWARDEN_ADMIN_TOKEN}
+      - DOMAIN=${VAULTWARDEN_DOMAIN:-http://localhost:8222}
+      - SIGNUPS_ALLOWED=${VAULTWARDEN_SIGNUPS:-true}
+    volumes:
+      - vaultwarden-data:/data
+    restart: unless-stopped
+
+  uptime-kuma:
+    image: louislam/uptime-kuma:latest
+    container_name: uptime-kuma
+    ports:
+      - "${UPTIME_KUMA_PORT:-3001}:3001"
+    volumes:
+      - uptime-kuma-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  nextcloud-data:
+  nextcloud-db-data:
+  paperless-data:
+  paperless-media:
+  vaultwarden-data:
+  uptime-kuma-data:

@@ -1,0 +1,28 @@
+# Reverse Proxy: Nginx Proxy Manager + Cloudflare Tunnel (volitelne)
+# SSL terminace, proxy management, volitelny tunnel pro pristup z internetu
+
+services:
+  nginx-proxy-manager:
+    image: jc21/nginx-proxy-manager:latest
+    container_name: nginx-proxy-manager
+    ports:
+      - "80:80"
+      - "443:443"
+      - "${NPM_ADMIN_PORT:-81}:81"
+    volumes:
+      - npm-data:/data
+      - npm-letsencrypt:/etc/letsencrypt
+    restart: unless-stopped
+
+  # Volitelne: Cloudflare Tunnel pro pristup z internetu bez otevreni portu
+  # cloudflared:
+  #   image: cloudflare/cloudflared:latest
+  #   container_name: cloudflared
+  #   command: tunnel --no-autoupdate run
+  #   environment:
+  #     - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+  #   restart: unless-stopped
+
+volumes:
+  npm-data:
+  npm-letsencrypt:

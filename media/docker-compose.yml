@@ -1,0 +1,86 @@
+# Media Stack: Jellyfin + Sonarr + Radarr + Prowlarr + qBittorrent
+# Kompletni media server s automatickym stahovani
+
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    ports:
+      - "${JELLYFIN_PORT:-8096}:8096"
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/Prague}
+    volumes:
+      - jellyfin-config:/config
+      - ${MEDIA_PATH:-./media}/movies:/data/movies
+      - ${MEDIA_PATH:-./media}/tv:/data/tv
+      - ${MEDIA_PATH:-./media}/music:/data/music
+    restart: unless-stopped
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    ports:
+      - "${SONARR_PORT:-8989}:8989"
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/Prague}
+    volumes:
+      - sonarr-config:/config
+      - ${MEDIA_PATH:-./media}/tv:/tv
+      - ${DOWNLOADS_PATH:-./downloads}:/downloads
+    restart: unless-stopped
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    ports:
+      - "${RADARR_PORT:-7878}:7878"
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/Prague}
+    volumes:
+      - radarr-config:/config
+      - ${MEDIA_PATH:-./media}/movies:/movies
+      - ${DOWNLOADS_PATH:-./downloads}:/downloads
+    restart: unless-stopped
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr:latest
+    container_name: prowlarr
+    ports:
+      - "${PROWLARR_PORT:-9696}:9696"
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/Prague}
+    volumes:
+      - prowlarr-config:/config
+    restart: unless-stopped
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent:latest
+    container_name: qbittorrent
+    ports:
+      - "${QBIT_PORT:-8080}:8080"
+      - "6881:6881"
+      - "6881:6881/udp"
+    environment:
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
+      - TZ=${TZ:-Europe/Prague}
+      - WEBUI_PORT=8080
+    volumes:
+      - qbittorrent-config:/config
+      - ${DOWNLOADS_PATH:-./downloads}:/downloads
+    restart: unless-stopped
+
+volumes:
+  jellyfin-config:
+  sonarr-config:
+  radarr-config:
+  prowlarr-config:
+  qbittorrent-config:
