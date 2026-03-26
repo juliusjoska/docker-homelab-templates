@@ -1,0 +1,28 @@
+name: Validate Docker Compose
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate Docker Compose files
+        run: |
+          for f in $(find . -name "docker-compose*.yml" -o -name "docker-compose*.yaml"); do
+            echo "Validating $f..."
+            docker compose -f "$f" config --quiet 2>&1 || echo "Warning: $f has issues"
+          done
+
+      - name: Check for hardcoded secrets
+        run: |
+          echo "Checking for hardcoded secrets..."
+          if grep -rn "password:\s*['\"]" --include="*.yml" --include="*.yaml" . | grep -v "changeme\|example\|your_"; then
+            echo "::warning::Found potential hardcoded passwords"
+          fi
+          echo "Done"
